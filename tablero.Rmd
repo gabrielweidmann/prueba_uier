@@ -1,0 +1,370 @@
+---
+title: "Tablero UIER"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(googlesheets4)
+library(zoo)
+library(mFilter)
+
+url <- "https://docs.google.com/spreadsheets/d/1qzBXdh-H2vZTrjvwaSgZoVTmKYa9r5devbvAGopxm_Y/edit#gid=0"
+
+df <- read_sheet(url,
+                 sheet = 'FAENA',
+                 col_names = T)
+
+df$fecha <- as.Date(df$fecha)
+df$AVES <- as.numeric(df$AVES)
+df$BOVINOS <- as.numeric(df$BOVINOS)
+df$PORCINOS <- as.numeric(df$PORCINOS)
+
+aves <- hpfilter(df$AVES, freq = 100)
+df$AVES_hp <- aves$trend
+
+bovinos <- hpfilter(df$BOVINOS, freq = 100)
+df$BOVINOS_hp <- bovinos$trend
+
+porcinos <- hpfilter(df$PORCINOS, freq = 100)
+df$PORCINOS_hp <- porcinos$trend
+
+df$AVES_movil <- rollmean(df$AVES, k = 5, align = "right", fill = NA)
+df$BOVINOS_movil <- rollmean(df$BOVINOS, k = 5, align = "right", fill = NA)
+df$PORCINOS_movil <- rollmean(df$PORCINOS, k = 5, align = "right", fill = NA)
+
+
+dfm <- read_sheet(url,
+                 sheet = 'MOLIENDA',
+                 col_names = T)
+
+dfm$fecha <- as.Date(df$fecha)
+dfm$TRIGO <- as.numeric(dfm$TRIGO)
+dfm$SOJA <- as.numeric(dfm$SOJA)
+dfm$ARROZ <- as.numeric(dfm$ARROZ)
+
+soja <- hpfilter(dfm$SOJA, freq = 100)
+dfm$SOJA_hp <- soja$trend
+
+trigo <- hpfilter(dfm$TRIGO, freq = 100)
+dfm$TRIGO_hp <- trigo$trend
+
+arroz <- hpfilter(dfm$ARROZ, freq = 100)
+dfm$ARROZ_hp <- arroz$trend
+
+```
+
+Avícola
+========================
+
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(df$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(df$AVES, 12)/(sum(tail(df$AVES, 24))-sum(tail(df$AVES, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de faena
+
+```{r}
+valueBox(value = tail(df$AVES, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses
+
+```{r}
+valueBox(value = round(mean(tail(df$AVES, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Faena aves
+
+```{r}
+plot_ly(df, x = ~fecha, y = ~AVES_hp, type = "scatter", mode="lines", name = "Faena de Aves (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~AVES, type = "scatter", mode="lines", name = "Faena de aves", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Faena de Aves en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Cantidad de aves"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+Bovino
+========================
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(df$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(df$BOVINOS, 12)/(sum(tail(df$BOVINOS, 24))-sum(tail(df$BOVINOS, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de faena
+
+```{r}
+valueBox(value = tail(df$BOVINOS, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses
+
+```{r}
+valueBox(value = round(mean(tail(df$BOVINOS, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Faena bovinos
+
+```{r}
+plot_ly(df, x = ~fecha, y = ~BOVINOS_hp, type = "scatter", mode="lines", name = "Faena de Bovinos (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~BOVINOS, type = "scatter", mode="lines", name = "Faena de Bovinos", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Faena de Bovinos en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Cantidad de Bovinos"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+
+Porcino
+========================
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(df$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(df$PORCINOS, 12)/(sum(tail(df$PORCINOS, 24))-sum(tail(df$PORCINOS, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de faena
+
+```{r}
+valueBox(value = tail(df$PORCINOS, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses
+
+```{r}
+valueBox(value = round(mean(tail(df$PORCINOS, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Faena porcinos
+
+```{r}
+plot_ly(df, x = ~fecha, y = ~PORCINOS_hp, type = "scatter", mode="lines", name = "Faena de Porcinos (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~PORCINOS, type = "scatter", mode="lines", name = "Faena de Porcinos", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Faena de Porcinos en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Cantidad de Porcinos"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+
+
+Soja
+========================
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(dfm$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(dfm$SOJA, 12)/(sum(tail(dfm$SOJA, 24))-sum(tail(dfm$SOJA, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de molienda en tn.
+
+```{r}
+valueBox(value = tail(dfm$SOJA, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses en tn.
+
+```{r}
+valueBox(value = round(mean(tail(dfm$SOJA, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Molienda de Soja
+
+```{r}
+plot_ly(dfm, x = ~fecha, y = ~SOJA_hp, type = "scatter", mode="lines", name = "Molienda de Soja (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~SOJA, type = "scatter", mode="lines", name = "Molienda de soja", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Molienda de Soja en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Toneladas"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+
+
+Trigo
+========================
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(dfm$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(dfm$TRIGO, 12)/(sum(tail(dfm$TRIGO, 24))-sum(tail(dfm$TRIGO, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de molienda en tn.
+
+```{r}
+valueBox(value = tail(dfm$TRIGO, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses en tn.
+
+```{r}
+valueBox(value = round(mean(tail(dfm$TRIGO, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Molienda de Trigo
+
+```{r}
+plot_ly(dfm, x = ~fecha, y = ~TRIGO_hp, type = "scatter", mode="lines", name = "Molienda de trigo (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~TRIGO, type = "scatter", mode="lines", name = "Molienda de trigo", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Molienda de Trigo en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Toneladas"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+
+
+Arroz
+========================
+## Rows
+
+### Mes de referencia
+
+```{r}
+valueBox(format(tail(dfm$fecha, n=1),'%m/%Y'), icon="fa-calendar")
+
+```
+
+### Variación Anual de los últimos 12 meses
+
+```{r}
+valueBox(value = round(((sum(tail(dfm$ARROZ, 12)/(sum(tail(dfm$ARROZ, 24))-sum(tail(dfm$ARROZ, 12)))))-1)*100, 2), icon="fa-percent")
+
+```
+
+### Último valor de molienda en tn.
+
+```{r}
+valueBox(value = tail(dfm$ARROZ, 1), icon="fa-calendar")
+
+```
+
+### Promedio últimos 12 meses en tn.
+
+```{r}
+valueBox(value = round(mean(tail(dfm$ARROZ, 12)),0), icon="fa-calendar")
+
+```
+
+## Rows
+
+### Molienda de Arroz
+
+```{r}
+plot_ly(dfm, x = ~fecha, y = ~ARROZ_hp, type = "scatter", mode="lines", name = "Molienda de arroz (filtro hp)", line = list(color = "black")) %>%
+  add_trace(y = ~ARROZ, type = "scatter", mode="lines", name = "Molienda de arroz", line = list(color = "grey", dash = "dot"))%>% 
+  layout(title = "Molienda de Arroz en Entre Ríos", 
+         xaxis = list(title = "Mes"),
+         yaxis = list (title = "Toneladas"),
+         legend = list(
+           x = 0.1, # Posición x de la leyenda (0 a 1)
+           y = 0.9, # Posición y de la leyenda (0 a 1)
+           xanchor = "left", # Alineación horizontal de la leyenda
+           yanchor = "top"   # Alineación vertical de la leyenda
+         ))
+```
+
+
